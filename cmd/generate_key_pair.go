@@ -90,6 +90,12 @@ func generateKeyPair(ctx context.Context) error {
 
 func getPass(confirm bool) ([]byte, error) {
 	fmt.Fprint(os.Stderr, "Enter password for private key: ")
+
+	if !term.IsTerminal(0) {
+		pw1, err := ioutil.ReadAll(os.Stdin)
+		return pw1, err
+	}
+
 	pw1, err := term.ReadPassword(0)
 	fmt.Fprintln(os.Stderr)
 	if err != nil {
