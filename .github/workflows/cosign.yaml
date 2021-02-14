@@ -18,18 +18,12 @@ jobs:
 
       - name: Install Go
         uses: actions/setup-go@v2
-      - name: Install cred helper
-        run: |
-          cd $HOME
-          echo $HOME/go/bin >> $GITHUB_PATH
-          go get -u github.com/GoogleCloudPlatform/docker-credential-gcr
-      - name: Configure Cred Helper
-        env:
-          GCR_TOKEN: ${{ secrets.GCR_TOKEN }}
-        run:
-          mkdir -p ~/.config/gcloud;
-          cat <<< "$GCR_TOKEN" > ~/.config/gcloud/application_default_credentials.json;
-          docker-credential-gcr configure-docker;
+      - uses: google-github-actions/setup-gcloud@master
+        with:
+          service_account_key: ${{ secrets.GCR_TOKEN }}
+          export_default_credentials: true
+      - name: setup creds
+        run: gcloud auth configure-docker
       - name: Build cosign
         run: go build -o cosign ./cmd/
       # Runs the Super-Linter action
