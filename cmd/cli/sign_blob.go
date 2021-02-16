@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/ed25519"
 	"encoding/base64"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -67,24 +68,35 @@ func SignBlobCmd(ctx context.Context, keyPath, payloadPath string, b64 bool, pf 
 		return err
 	}
 
+	pk, err := loadPk(keyPath, pf)
+
+	signature := ed25519.Sign(pk, payload)
+	fmt.Println(base64.StdEncoding.EncodeToString(signature))
+	return nil
+}
+
+func loadPk(keyPath string, pf cosign.PassFunc) (ed25519.PrivateKey, error) {
 	pass, err := pf(false)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	kb, err := ioutil.ReadFile(keyPath)
-	if err != nil {
-		return err
+	kb := []byte(os.Getenv("COSIGN_KEY"))
+	if keyPath == "" && kb == nil {
+		return nil, errors.New("Must specify -key or $COSIGN_KEY")
 	}
+	if keyPath != "" && kb != nil {
+		return nil, errors.New("Must specify only one of -key or $COSIGN_KEY")
+	}
+	if keyPath != "" {
+		kb, err = ioutil.ReadFile(keyPath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	pk, err := cosign.LoadPrivateKey(kb, pass)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	signature := ed25519.Sign(pk, payload)
-	if b64 {
-		fmt.Println(base64.StdEncoding.EncodeToString(signature))
-	} else {
-		// No newline if using the raw signature
-		os.Stdout.Write(signature)
-	}
-	return nil
+	return pk, nil
 }

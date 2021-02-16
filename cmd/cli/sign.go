@@ -111,18 +111,8 @@ func SignCmd(ctx context.Context, keyPath string,
 		return err
 	}
 
-	pass, err := pf(false)
-	if err != nil {
-		return err
-	}
-	kb, err := ioutil.ReadFile(keyPath)
-	if err != nil {
-		return err
-	}
-	pk, err := cosign.LoadPrivateKey(kb, pass)
-	if err != nil {
-		return err
-	}
+	pk, err := loadPk(keyPath, pf)
+
 	signature := ed25519.Sign(pk, payload)
 
 	if !upload {
